@@ -50,13 +50,6 @@ export function syncPageToFile(slug: string): boolean {
 }
 
 /** Import a single Markdown file from wiki/ into SQLite */
-export function syncFileToDb(filePath: string): string | null {
-  const content = Bun.file(filePath).text();
-
-  return syncFileContentToDb(filePath, content instanceof Promise ? "" : content);
-}
-
-/** Async version of syncFileToDb */
 export async function syncFileToDbAsync(filePath: string): Promise<string | null> {
   const content = await Bun.file(filePath).text();
   return syncFileContentToDb(filePath, content);

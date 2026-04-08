@@ -64,19 +64,28 @@ async function main() {
     return args.includes(`--${name}`);
   }
 
+  function requireArg(index: number, name: string): string {
+    const val = args[index];
+    if (!val) {
+      console.error(`Missing required argument: <${name}>`);
+      process.exit(1);
+    }
+    return val;
+  }
+
   switch (command) {
     case "get":
-      await cmdGet(args[1]);
+      await cmdGet(requireArg(1, "slug"));
       break;
     case "put":
-      await cmdPut(args[1], {
+      await cmdPut(requireArg(1, "slug"), {
         title: getFlag("title"),
         file: getFlag("file"),
         tags: getFlag("tags"),
       });
       break;
     case "delete":
-      cmdDelete(args[1]);
+      cmdDelete(requireArg(1, "slug"));
       break;
     case "list":
       cmdList({ tag: getFlag("tag"), limit: getFlag("limit") });
@@ -90,25 +99,25 @@ async function main() {
       });
       break;
     case "link":
-      cmdLink(args[1], args[2]);
+      cmdLink(requireArg(1, "source"), requireArg(2, "target"));
       break;
     case "backlinks":
-      cmdBacklinks(args[1]);
+      cmdBacklinks(requireArg(1, "slug"));
       break;
     case "tags":
       cmdTags(args[1]);
       break;
     case "timeline":
-      cmdTimeline(args[1]);
+      cmdTimeline(requireArg(1, "slug"));
       break;
     case "import":
-      await cmdImport(args[1]);
+      await cmdImport(requireArg(1, "path"));
       break;
     case "export":
       await cmdExport({ all: hasFlag("all") });
       break;
     case "embed":
-      await cmdEmbed(args[1]);
+      await cmdEmbed(requireArg(1, "slug"));
       break;
     case "sync":
       await cmdSync({ direction: getFlag("direction") });

@@ -1,6 +1,7 @@
 import { searchFts } from "../core/fts";
 import { searchByVector } from "../core/embeddings";
 import { getPage } from "../core/pages";
+import { getTagsForPage } from "../core/tags";
 import type { SearchResult, SearchOptions } from "../types";
 import type { EmbeddingProvider } from "../embeddings/provider";
 
@@ -54,9 +55,8 @@ export async function hybridSearch(
 
     // Layer 3: Structured filter (tag)
     if (options.tag) {
-      const page = getPage(slug);
-      if (!page) continue;
-      // Tag filtering is handled at query level, but we boost matches
+      const pageTags = getTagsForPage(slug);
+      if (!pageTags.includes(options.tag)) continue;
     }
 
     const ftsResult = ftsResults.find((r) => r.slug === slug);

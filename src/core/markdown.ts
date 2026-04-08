@@ -24,7 +24,7 @@ export function pageToMarkdown(
 
   // Timeline section
   if (timelineEntries.length > 0) {
-    body += "\n\n---\n\n## Timeline\n\n";
+    body += "\n\n***\n\n## Timeline\n\n";
     for (const entry of timelineEntries) {
       const source = entry.source ? ` | ${entry.source}` : "";
       body += `- **${entry.date}**${source} — ${entry.summary}\n`;
@@ -46,7 +46,8 @@ export function markdownToPage(content: string): {
   const tags: string[] = Array.isArray(data.tags) ? data.tags : [];
 
   // Split body into compiled truth and timeline
-  const timelineSeparator = /\n---\n+## Timeline\n/;
+  // Match both *** and --- as timeline separator (backwards compatibility)
+  const timelineSeparator = /\n(?:\*\*\*|---)\n+## Timeline\n/;
   const parts = body.split(timelineSeparator);
 
   const compiledTruth = (parts[0] || "").trim();
