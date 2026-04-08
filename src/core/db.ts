@@ -4,7 +4,7 @@ import { join } from "path";
 let _db: Database | null = null;
 let _dbPath: string | null = null;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode=WAL;
@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS pages (
 CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(
     slug UNINDEXED, title, content,
     tokenize='trigram'
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS page_fts_token USING fts5(
+    slug UNINDEXED, title, content,
+    tokenize='unicode61'
 );
 
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -90,7 +95,7 @@ export function openDb(path?: string): Database {
   // Run schema
   db.exec(SCHEMA_SQL);
 
-  // Migration: v1→v2 rebuild FTS with unicode61 tokenizer
+  // Migrations
   const currentVersion = (() => {
     try {
       const row = db.query("SELECT value FROM config WHERE key = 'schema_version'").get() as { value: string } | null;
@@ -98,18 +103,22 @@ export function openDb(path?: string): Database {
     } catch { return 0; }
   })();
 
-  if (currentVersion < 2) {
-    // Rebuild FTS table with unicode61 tokenizer
+  if (currentVersion < 3) {
+    // Rebuild FTS tables: dual-index (trigram + unicode61)
     try {
       db.exec("DROP TABLE IF EXISTS page_fts");
+      db.exec("DROP TABLE IF EXISTS page_fts_token");
       db.exec(`CREATE VIRTUAL TABLE page_fts USING fts5(
-        slug UNINDEXED, title, content,
-        tokenize='trigram'
+        slug UNINDEXED, title, content, tokenize='trigram'
       )`);
-      // Re-populate from pages table
+      db.exec(`CREATE VIRTUAL TABLE page_fts_token USING fts5(
+        slug UNINDEXED, title, content, tokenize='unicode61'
+      )`);
       db.exec(`INSERT INTO page_fts (slug, title, content)
         SELECT slug, title, compiled_truth FROM pages`);
-    } catch { /* table might not exist yet on fresh DB, that's fine */ }
+      db.exec(`INSERT INTO page_fts_token (slug, title, content)
+        SELECT slug, title, compiled_truth FROM pages`);
+    } catch { /* fresh DB — tables created by SCHEMA_SQL */ }
   }
 
   // Store schema version

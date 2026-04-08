@@ -34,11 +34,17 @@ export function putPage(input: PageInput): Page {
     );
   }
 
-  // Update FTS index
+  // Update FTS index (dual: trigram + unicode61)
   if (existing) {
     db.run("DELETE FROM page_fts WHERE slug = ?", [input.slug]);
+    db.run("DELETE FROM page_fts_token WHERE slug = ?", [input.slug]);
   }
   db.run("INSERT INTO page_fts (slug, title, content) VALUES (?, ?, ?)", [
+    input.slug,
+    input.title,
+    input.compiled_truth,
+  ]);
+  db.run("INSERT INTO page_fts_token (slug, title, content) VALUES (?, ?, ?)", [
     input.slug,
     input.title,
     input.compiled_truth,
@@ -67,6 +73,7 @@ export function deletePage(slug: string): boolean {
   if (!existing) return false;
 
   db.run("DELETE FROM page_fts WHERE slug = ?", [slug]);
+  db.run("DELETE FROM page_fts_token WHERE slug = ?", [slug]);
   db.run("DELETE FROM pages WHERE slug = ?", [slug]);
 
   // Remove wiki file if it exists

@@ -51,7 +51,7 @@ describe("db", () => {
   });
 
   test("schema_version is set", () => {
-    expect(getConfig("schema_version")).toBe("2");
+    expect(getConfig("schema_version")).toBe("3");
   });
 
   test("config get/set", () => {
@@ -314,8 +314,9 @@ describe("fts", () => {
 
   test("rebuildFtsIndex", () => {
     putPage({ slug: "test/a", title: "A", compiled_truth: "content" });
-    // Manually corrupt FTS
+    // Manually corrupt both FTS indexes
     getDb().run("DELETE FROM page_fts");
+    getDb().run("DELETE FROM page_fts_token");
     expect(searchFts("content").length).toBe(0);
     rebuildFtsIndex();
     expect(searchFts("content").length).toBe(1);
