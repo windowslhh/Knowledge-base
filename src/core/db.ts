@@ -4,7 +4,7 @@ import { join } from "path";
 let _db: Database | null = null;
 let _dbPath: string | null = null;
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode=WAL;
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS pages (
 
 CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(
     slug UNINDEXED, title, content,
-    tokenize='porter ascii'
+    tokenize='trigram'
 );
 
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -89,6 +89,28 @@ export function openDb(path?: string): Database {
 
   // Run schema
   db.exec(SCHEMA_SQL);
+
+  // Migration: v1→v2 rebuild FTS with unicode61 tokenizer
+  const currentVersion = (() => {
+    try {
+      const row = db.query("SELECT value FROM config WHERE key = 'schema_version'").get() as { value: string } | null;
+      return row ? parseInt(row.value) : 0;
+    } catch { return 0; }
+  })();
+
+  if (currentVersion < 2) {
+    // Rebuild FTS table with unicode61 tokenizer
+    try {
+      db.exec("DROP TABLE IF EXISTS page_fts");
+      db.exec(`CREATE VIRTUAL TABLE page_fts USING fts5(
+        slug UNINDEXED, title, content,
+        tokenize='trigram'
+      )`);
+      // Re-populate from pages table
+      db.exec(`INSERT INTO page_fts (slug, title, content)
+        SELECT slug, title, compiled_truth FROM pages`);
+    } catch { /* table might not exist yet on fresh DB, that's fine */ }
+  }
 
   // Store schema version
   db.run(

@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { updateLinksFromContent } from "./links";
 import type { Page, PageInput } from "../types";
 
 export function getPage(slug: string): Page | null {
@@ -39,6 +40,9 @@ export function putPage(input: PageInput): Page {
     input.title,
     input.compiled_truth,
   ]);
+
+  // Extract and update [[wiki-links]] from content
+  updateLinksFromContent(input.slug, input.compiled_truth);
 
   // Update tags if provided
   if (input.tags) {

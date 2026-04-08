@@ -33,9 +33,9 @@ export function formatSearchResults(results: SearchResult[]): string {
 
   let out = `Found ${results.length} result(s):\n\n`;
   for (const r of results) {
-    out += `  ${r.slug}  (${r.score.toFixed(3)})  ${r.title}\n`;
+    out += `  ${r.slug}  (${r.score.toFixed(4)})  ${r.title}\n`;
     if (r.snippet) {
-      out += `    ${r.snippet.replace(/<\/?b>/g, "").trim()}\n`;
+      out += `    ${r.snippet.trim()}\n`;
     }
   }
   return out;

@@ -51,7 +51,7 @@ describe("db", () => {
   });
 
   test("schema_version is set", () => {
-    expect(getConfig("schema_version")).toBe("1");
+    expect(getConfig("schema_version")).toBe("2");
   });
 
   test("config get/set", () => {
