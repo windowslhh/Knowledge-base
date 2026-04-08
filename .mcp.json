@@ -2,8 +2,7 @@
   "mcpServers": {
     "gbrain": {
       "command": "bun",
-      "args": ["run", "src/mcp/index.ts"],
-      "cwd": "/home/user/Knowledge-base"
+      "args": ["run", "src/mcp/index.ts"]
     }
   }
 }
