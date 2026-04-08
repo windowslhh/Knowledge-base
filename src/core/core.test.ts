@@ -670,18 +670,27 @@ File content.
     expect(indexContent).toContain("2 pages total");
   });
 
-  test("sync roundtrip: DB → file → DB", async () => {
+  test("sync roundtrip: DB → file → lose DB → reimport from file", async () => {
     putPage({ slug: "test/rt", title: "Roundtrip", compiled_truth: "Original content", tags: ["rt"] });
     addTimelineEntry({ page_slug: "test/rt", date: "2026-01-01", source: "src", summary: "Entry" });
 
     // Export to file
     syncPageToFile("test/rt");
+    expect(existsSync(join(wikiDir, "test/rt.md"))).toBe(true);
 
-    // Delete from DB
+    // Simulate "DB lost" — delete from DB directly without deletePage
+    // (deletePage also removes the wiki file, which is the correct behavior
+    //  for intentional deletion. Here we simulate data loss.)
     const db = getDb();
+    db.run("DELETE FROM page_fts WHERE slug = ?", ["test/rt"]);
     db.run("DELETE FROM timeline_entries WHERE page_slug = ?", ["test/rt"]);
-    deletePage("test/rt");
+    db.run("DELETE FROM tags WHERE page_slug = ?", ["test/rt"]);
+    db.run("DELETE FROM links WHERE source_slug = ?", ["test/rt"]);
+    db.run("DELETE FROM pages WHERE slug = ?", ["test/rt"]);
     expect(getPage("test/rt")).toBeNull();
+
+    // Wiki file should still exist (not touched)
+    expect(existsSync(join(wikiDir, "test/rt.md"))).toBe(true);
 
     // Re-import from file
     const slug = await syncFileToDbAsync(join(wikiDir, "test/rt.md"));
@@ -689,6 +698,14 @@ File content.
     expect(getPage("test/rt")!.compiled_truth).toBe("Original content");
     expect(getTagsForPage("test/rt")).toContain("rt");
     expect(getTimeline("test/rt").length).toBe(1);
+  });
+
+  test("deletePage removes wiki file", () => {
+    putPage({ slug: "test/delwiki", title: "Del Wiki", compiled_truth: "content" });
+    syncPageToFile("test/delwiki");
+    expect(existsSync(join(wikiDir, "test/delwiki.md"))).toBe(true);
+    deletePage("test/delwiki");
+    expect(existsSync(join(wikiDir, "test/delwiki.md"))).toBe(false);
   });
 });
 

@@ -1,5 +1,8 @@
 import { getDb } from "./db";
 import { updateLinksFromContent } from "./links";
+import { getWikiDir } from "./sync";
+import { join } from "path";
+import { existsSync, unlinkSync } from "fs";
 import type { Page, PageInput } from "../types";
 
 export function getPage(slug: string): Page | null {
@@ -65,6 +68,15 @@ export function deletePage(slug: string): boolean {
 
   db.run("DELETE FROM page_fts WHERE slug = ?", [slug]);
   db.run("DELETE FROM pages WHERE slug = ?", [slug]);
+
+  // Remove wiki file if it exists
+  try {
+    const wikiFile = join(getWikiDir(), `${slug}.md`);
+    if (existsSync(wikiFile)) unlinkSync(wikiFile);
+  } catch {
+    // Non-critical: wiki file cleanup is best-effort
+  }
+
   return true;
 }
 

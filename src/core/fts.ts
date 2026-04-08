@@ -32,13 +32,14 @@ export function searchFts(query: string, limit: number = 20): SearchResult[] {
     )
     .all(safeQuery, limit) as SearchResult[];
 
-  // Normalize scores to 0-1 range for display
+  // Normalize scores for display: use rank-based scoring
+  // Trigram BM25 produces wildly different magnitudes for different term lengths,
+  // so we use rank-based normalization instead of raw score normalization
   if (rows.length > 0) {
-    const maxScore = Math.max(...rows.map((r) => r.score));
-    if (maxScore > 0) {
-      for (const row of rows) {
-        row.score = row.score / maxScore;
-      }
+    const n = rows.length;
+    for (let i = 0; i < n; i++) {
+      // Top result = 1.0, last result = 1/n, linearly interpolated
+      rows[i].score = (n - i) / n;
     }
   }
 
